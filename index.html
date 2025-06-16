@@ -8,9 +8,23 @@
   <style>
     body, html { margin: 0; overflow: hidden; width: 100%; height: 100%; }
     a-scene { width: 100%; height: 100%; position: fixed; }
+    #startMessage {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: sans-serif;
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
+  <div id="startMessage">Click or tap anywhere to launch</div>
+
   <a-scene
     vr-mode-ui="enabled: false"
     embedded
@@ -18,11 +32,11 @@
   >
     <a-entity camera></a-entity>
 
-    <!-- Ground for reference -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color="#999"></a-plane>
+    <!-- Ground for visual reference -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color="#aaa"></a-plane>
 
     <!-- Projectile -->
-    <a-entity id="projectile" position="0 0.1 0" projectile-motion visible="true">
+    <a-entity id="projectile" position="0 0.1 0" projectile-motion>
       <a-sphere color="orange" radius="0.1"></a-sphere>
     </a-entity>
   </a-scene>
@@ -62,35 +76,21 @@
       }
     });
 
-
-
-    // Wait for scene to load before binding tap
-    window.addEventListener('DOMContentLoaded', () => {
-      const scene = document.querySelector('a-scene');
+    window.addEventListener('load', () => {
       const projectile = document.querySelector('#projectile');
-
-      scene.addEventListener('click', () => {
+      const launch = () => {
         if (projectile && projectile.components['projectile-motion']) {
           projectile.components['projectile-motion'].startMotion();
         }
-      });
+        // Hide message on first launch
+        const msg = document.getElementById('startMessage');
+        if (msg) msg.style.display = 'none';
+      };
+
+      // Handle both mouse click and touch
+      document.body.addEventListener('click', launch);
+      document.body.addEventListener('touchstart', launch);
     });
-
-    window.addEventListener('DOMContentLoaded', () => {
-  const scene = document.querySelector('a-scene');
-  const projectile = document.querySelector('#projectile');
-
-  function launchProjectile() {
-    if (projectile && projectile.components['projectile-motion']) {
-      projectile.components['projectile-motion'].startMotion();
-    }
-  }
-
-  // Support both desktop click and mobile tap
-  scene.addEventListener('click', launchProjectile);
-  scene.addEventListener('touchstart', launchProjectile);
-});
-
   </script>
 </body>
 </html>
