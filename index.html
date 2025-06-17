@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Projectile with Explosion FX</title>
+    <title>Projectile Motion with Explosion FX</title>
     <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
@@ -38,7 +38,7 @@
           static-body
         ></a-box>
 
-        <!-- Target cube -->
+        <!-- Target -->
         <a-box
           id="target"
           position="0 0.6 -1"
@@ -76,49 +76,54 @@
 
       function launchProjectile() {
         const projectile = document.createElement('a-sphere');
-        const randomOffset = (Math.random() * 0.2) - 0.1;
-
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'yellow');
-        projectile.setAttribute('position', '0 1 0');
         projectile.setAttribute('dynamic-body', {
           mass: 1,
           shape: 'sphere',
           restitution: 0.7
         });
 
+        // Get launcher position and offset slightly forward
+        const launcherPos = launcher.object3D.getWorldPosition(new THREE.Vector3());
+        const offset = new THREE.Vector3(0, 0.2, -0.2); // slightly above and forward
+        const startPosition = launcherPos.clone().add(offset);
+
+        projectile.setAttribute('position', `${startPosition.x} ${startPosition.y} ${startPosition.z}`);
         marker.appendChild(projectile);
 
         projectile.addEventListener('body-loaded', () => {
-          projectile.body.velocity.set(0, 3, -2 + randomOffset);
+          // Give initial velocity forward (toward negative Z)
+          projectile.body.velocity.set(0, 2.5, -3);
         });
 
+        // Handle collision
         projectile.addEventListener('collide', (e) => {
           const hitEl = e.detail.body.el;
           if (hitEl === target) {
-            console.log('💥 Hit Target!');
+            console.log('💥 Target hit!');
 
-            // Play sound
+            // Play explosion sound
             explosionSound.components.sound.playSound();
 
-            // Particle explosion
-            const particles = document.createElement('a-entity');
-            particles.setAttribute('position', target.getAttribute('position'));
-            particles.setAttribute('particle-system', {
+            // Particle effect
+            const explosion = document.createElement('a-entity');
+            explosion.setAttribute('position', target.getAttribute('position'));
+            explosion.setAttribute('particle-system', {
               preset: 'dust',
               particleCount: 100,
-              color: '#FFA500, #FF0000',
               size: 0.2,
+              color: '#FFA500, #FF0000',
               duration: 0.5
             });
-            marker.appendChild(particles);
+            marker.appendChild(explosion);
 
             // Remove target
             if (marker.contains(target)) marker.removeChild(target);
 
-            // Clean particles
+            // Clean up particles
             setTimeout(() => {
-              if (marker.contains(particles)) marker.removeChild(particles);
+              if (marker.contains(explosion)) marker.removeChild(explosion);
             }, 700);
           }
 
