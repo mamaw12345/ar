@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Projectile Motion AR</title>
+    <title>AR Projectile Motion with Bounce & Explosion</title>
     <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
@@ -19,17 +19,17 @@
     >
       <!-- AR marker -->
       <a-marker preset="hiro">
-        <!-- Ground plane -->
+        <!-- Ground -->
         <a-box
+          position="0 0 0"
           width="4"
           height="0.1"
           depth="4"
-          color="#aaa"
+          color="#ccc"
           static-body
-          position="0 0 0"
         ></a-box>
 
-        <!-- Launcher (clickable) -->
+        <!-- Launcher button -->
         <a-box
           id="launcher"
           class="clickable"
@@ -41,7 +41,6 @@
         ></a-box>
       </a-marker>
 
-      <!-- Camera -->
       <a-entity camera></a-entity>
     </a-scene>
 
@@ -50,21 +49,47 @@
       const marker = document.querySelector('a-marker');
 
       launcher.addEventListener('click', () => {
-        // Create projectile sphere
+        // Create projectile
         const projectile = document.createElement('a-sphere');
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'blue');
-        projectile.setAttribute('position', '0 1 0'); // start position
-        projectile.setAttribute('dynamic-body', 'mass: 1');
+        projectile.setAttribute('position', '0 1 0');
 
-        // Wait until physics body is created
-        projectile.addEventListener('body-loaded', () => {
-          // Set the initial velocity for projectile motion
-          const body = projectile.body;
-          body.velocity.set(1.5, 3, -2); // x, y, z components (adjust as needed)
+        // Set physics (with bounce)
+        projectile.setAttribute('dynamic-body', {
+          mass: 1,
+          shape: 'sphere',
+          restitution: 0.7 // BOUNCE!
         });
 
+        // On collision: explode and remove
+        projectile.addEventListener('collide', (e) => {
+          console.log('💥 Projectile collided!');
+
+          // Explosion effect
+          const explosion = document.createElement('a-sphere');
+          explosion.setAttribute('radius', '0.1');
+          explosion.setAttribute('color', 'orange');
+          explosion.setAttribute('position', projectile.getAttribute('position'));
+          marker.appendChild(explosion);
+
+          // Clean up
+          setTimeout(() => {
+            marker.removeChild(explosion);
+          }, 300);
+
+          // Remove projectile
+          if (marker.contains(projectile)) {
+            marker.removeChild(projectile);
+          }
+        });
+
+        // Add projectile and launch it
         marker.appendChild(projectile);
+        projectile.addEventListener('body-loaded', () => {
+          const body = projectile.body;
+          body.velocity.set(1.5, 3, -2); // Initial velocity: x, y, z
+        });
       });
     </script>
   </body>
