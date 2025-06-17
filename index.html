@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Physics Projectile Motion</title>
+    <title>Projectile Motion AR</title>
+    <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
   </head>
 
@@ -16,19 +17,19 @@
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
     >
-      <!-- Marker -->
+      <!-- AR marker -->
       <a-marker preset="hiro">
-        <!-- Ground so projectile has something to land on -->
+        <!-- Ground plane -->
         <a-box
-          position="0 0 0"
           width="4"
           height="0.1"
           depth="4"
-          color="#ccc"
+          color="#aaa"
           static-body
+          position="0 0 0"
         ></a-box>
 
-        <!-- Launcher Button -->
+        <!-- Launcher (clickable) -->
         <a-box
           id="launcher"
           class="clickable"
@@ -40,31 +41,29 @@
         ></a-box>
       </a-marker>
 
+      <!-- Camera -->
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      const scene = document.querySelector('a-scene');
-      const launcher = document.querySelector('#launcher');
+      const launcher = document.getElementById('launcher');
+      const marker = document.querySelector('a-marker');
 
       launcher.addEventListener('click', () => {
-        // Create a new projectile
+        // Create projectile sphere
         const projectile = document.createElement('a-sphere');
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'blue');
-        projectile.setAttribute('position', '0 1 0'); // above launcher
+        projectile.setAttribute('position', '0 1 0'); // start position
         projectile.setAttribute('dynamic-body', 'mass: 1');
 
-        // Wait for it to load before applying velocity
+        // Wait until physics body is created
         projectile.addEventListener('body-loaded', () => {
+          // Set the initial velocity for projectile motion
           const body = projectile.body;
-          if (body) {
-            // Apply an initial velocity to simulate launch
-            body.velocity.set(1, 3, -2); // x, y, z
-          }
+          body.velocity.set(1.5, 3, -2); // x, y, z components (adjust as needed)
         });
 
-        const marker = document.querySelector('a-marker');
         marker.appendChild(projectile);
       });
     </script>
