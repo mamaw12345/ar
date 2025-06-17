@@ -2,48 +2,104 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>AR Projectile Motion</title>
+    <title>AR Projectile Motion with Score</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
+    <style>
+      #score {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 24px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        z-index: 1;
+        border-radius: 10px;
+      }
+    </style>
   </head>
   <body>
+    <div id="score">Score: 0</div>
+
     <a-scene
       vr-mode-ui="enabled: false"
-      renderer="colorManagement: true; physicallyCorrectLights: true"
+      embedded
       xr-mode="immersive-ar"
       webxr="optionalFeatures: hit-test; requiredFeatures: local-floor"
-      embedded
       ar-hit-test
       physics="gravity: -9.8"
     >
-      <!-- AR Camera -->
       <a-entity camera look-controls></a-entity>
 
-      <!-- Ground (invisible, just for collisions) -->
-      <a-plane color="transparent" height="100" width="100" rotation="-90 0 0" static-body></a-plane>
+      <!-- Ground -->
+      <a-plane rotation="-90 0 0" width="100" height="100" color="transparent" static-body></a-plane>
 
       <!-- Target -->
-      <a-box position="0 0.5 -3" width="0.5" height="0.5" depth="0.5" color="red" static-body></a-box>
+      <a-box
+        id="target"
+        class="target"
+        position="0 0.5 -3"
+        width="0.5"
+        height="0.5"
+        depth="0.5"
+        color="red"
+        static-body
+      ></a-box>
+
+      <!-- Explosion template (hidden by default) -->
+      <a-entity id="explosion" geometry="primitive: sphere; radius: 0.2"
+                material="color: orange; opacity: 0.8"
+                visible="false"
+                animation__scale="property: scale; to: 2 2 2; dur: 300; easing: easeOutCubic"
+                animation__fade="property: material.opacity; to: 0; dur: 300; delay: 100">
+      </a-entity>
     </a-scene>
 
     <script>
+      let score = 0;
+
       AFRAME.registerComponent("tap-to-shoot", {
         init: function () {
           const sceneEl = this.el.sceneEl;
+          const target = document.querySelector("#target");
+          const scoreDisplay = document.getElementById("score");
+
           sceneEl.addEventListener("click", () => {
-            const cam = document.querySelector("[camera]");
+            const camera = document.querySelector("[camera]");
             const camPos = new THREE.Vector3();
             const camDir = new THREE.Vector3();
-            cam.object3D.getWorldPosition(camPos);
-            cam.object3D.getWorldDirection(camDir);
+            camera.object3D.getWorldPosition(camPos);
+            camera.object3D.getWorldDirection(camDir);
 
             const ball = document.createElement("a-sphere");
             ball.setAttribute("radius", "0.05");
             ball.setAttribute("color", "#FFC107");
             ball.setAttribute("position", `${camPos.x} ${camPos.y} ${camPos.z}`);
-            ball.setAttribute("dynamic-body", "mass: 0.2");
+            ball.setAttribute("dynamic-body", "mass: 0.2; shape: sphere");
+            ball.classList.add("projectile");
+
+            // Add collision listener
+            ball.addEventListener("collide", (e) => {
+              const collidedEl = e.detail.body.el;
+              if (collidedEl && collidedEl.classList.contains("target")) {
+                // Explosion
+                const explosion = document.querySelector("#explosion").cloneNode(true);
+                explosion.setAttribute("visible", "true");
+                explosion.setAttribute("position", collidedEl.getAttribute("position"));
+                sceneEl.appendChild(explosion);
+
+                // Score update
+                score += 1;
+                scoreDisplay.textContent = `Score: ${score}`;
+
+                // Cleanup
+                setTimeout(() => {
+                  sceneEl.removeChild(explosion);
+                }, 600);
+              }
+            });
 
             sceneEl.appendChild(ball);
 
