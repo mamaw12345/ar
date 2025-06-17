@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Multiple Projectile Motion</title>
+    <title>Projectile Explodes Cube</title>
     <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
@@ -17,7 +17,7 @@
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
     >
-      <!-- Camera with cursor -->
+      <!-- Camera with cursor for mobile -->
       <a-entity camera>
         <a-entity
           cursor="fuse: false; rayOrigin: mouse"
@@ -26,7 +26,7 @@
       </a-entity>
 
       <!-- Marker -->
-      <a-marker preset="hiro">
+      <a-marker preset="hiro" id="marker">
         <!-- Ground -->
         <a-box
           position="0 0 0"
@@ -37,7 +37,18 @@
           static-body
         ></a-box>
 
-        <!-- Launcher -->
+        <!-- Target cube (will explode) -->
+        <a-box
+          id="target"
+          position="0 0.6 -1"
+          width="0.3"
+          height="0.3"
+          depth="0.3"
+          color="red"
+          static-body
+        ></a-box>
+
+        <!-- Launcher button -->
         <a-box
           id="launcher"
           class="clickable"
@@ -45,53 +56,61 @@
           width="0.3"
           height="0.3"
           depth="0.3"
-          color="red"
+          color="blue"
         ></a-box>
       </a-marker>
     </a-scene>
 
     <script>
       const launcher = document.getElementById('launcher');
-      const marker = document.querySelector('a-marker');
+      const marker = document.getElementById('marker');
+      const target = document.getElementById('target');
 
       function launchProjectile() {
         const projectile = document.createElement('a-sphere');
-        const randomX = (Math.random() * 0.2) - 0.1; // tiny random offset
-        const startPosition = `0 1 0`;
+        const randomOffset = (Math.random() * 0.2) - 0.1;
 
         projectile.setAttribute('radius', '0.05');
-        projectile.setAttribute('color', 'blue');
-        projectile.setAttribute('position', startPosition);
+        projectile.setAttribute('color', 'yellow');
+        projectile.setAttribute('position', '0 1 0');
         projectile.setAttribute('dynamic-body', {
           mass: 1,
           shape: 'sphere',
           restitution: 0.7
         });
 
-        // Handle collision for each ball
-        projectile.addEventListener('collide', () => {
-          const explosion = document.createElement('a-sphere');
-          explosion.setAttribute('radius', '0.1');
-          explosion.setAttribute('color', 'orange');
-          explosion.setAttribute('position', projectile.getAttribute('position'));
-          marker.appendChild(explosion);
-
-          setTimeout(() => {
-            if (marker.contains(explosion)) marker.removeChild(explosion);
-          }, 300);
-
-          if (marker.contains(projectile)) marker.removeChild(projectile);
-        });
-
+        // Append to marker
         marker.appendChild(projectile);
 
         projectile.addEventListener('body-loaded', () => {
-          // Fire with slight variation for realism
-          projectile.body.velocity.set(1.5 + randomX, 3, -2 + randomX);
+          projectile.body.velocity.set(0, 3, -2 + randomOffset);
+        });
+
+        // Detect collision with target
+        projectile.addEventListener('collide', (e) => {
+          if (e.detail.body.el === target) {
+            console.log('💥 Hit target!');
+
+            // Create explosion effect
+            const explosion = document.createElement('a-sphere');
+            explosion.setAttribute('radius', '0.2');
+            explosion.setAttribute('color', 'orange');
+            explosion.setAttribute('position', target.getAttribute('position'));
+            marker.appendChild(explosion);
+
+            setTimeout(() => {
+              if (marker.contains(explosion)) marker.removeChild(explosion);
+            }, 500);
+
+            // Remove target box
+            if (marker.contains(target)) marker.removeChild(target);
+          }
+
+          // Always remove the projectile after collision
+          if (marker.contains(projectile)) marker.removeChild(projectile);
         });
       }
 
-      // Tap support
       launcher.addEventListener('click', launchProjectile);
       launcher.addEventListener('touchstart', launchProjectile);
     </script>
