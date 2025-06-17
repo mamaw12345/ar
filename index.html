@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>3D Projectile Motion AR</title>
+    <title>3D Projectile AR</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs>
+    <a-scene embedded arjs cursor="rayOrigin: mouse" raycaster="objects: .clickable">
       
       <!-- Marker -->
       <a-marker preset="hiro">
-        <!-- Launcher object -->
-        <a-box position="0 0.5 0" depth="0.2" height="0.2" width="0.2" color="red"></a-box>
+        <!-- Launcher (clickable) -->
+        <a-box id="launcher" class="clickable" position="0 0.5 0" depth="0.2" height="0.2" width="0.2" color="red"></a-box>
 
         <!-- Projectile -->
         <a-sphere id="projectile" position="0 0.5 0" radius="0.05" color="blue"></a-sphere>
@@ -22,6 +22,7 @@
 
     <script>
       const projectile = document.querySelector('#projectile');
+      const launcher = document.querySelector('#launcher');
       let t = 0;
       let interval;
 
@@ -31,10 +32,8 @@
 
         interval = setInterval(() => {
           t += 0.05;
-
-          // Parametric 3D arc path: x = t, y = sin(t), z = -t (no gravity, fake arc)
           const x = t;
-          const y = 0.5 + 0.5 * Math.sin(t * 2); // sine wave arc
+          const y = 0.5 + 0.5 * Math.sin(t * 2);
           const z = -t;
 
           if (t > 2) {
@@ -45,8 +44,12 @@
         }, 50);
       }
 
-      // Tap anywhere to launch
-      document.body.addEventListener('click', launchProjectile);
+      // Launch when the red launcher box is clicked
+      launcher.addEventListener('click', () => {
+        // Reset to starting point
+        projectile.setAttribute('position', '0 0.5 0');
+        launchProjectile();
+      });
     </script>
   </body>
 </html>
