@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Projectile Motion with Bounce & Explosion</title>
+    <title>AR Multiple Projectile Motion</title>
     <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
@@ -17,7 +17,7 @@
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
     >
-      <!-- Camera cursor for mobile -->
+      <!-- Camera with cursor -->
       <a-entity camera>
         <a-entity
           cursor="fuse: false; rayOrigin: mouse"
@@ -25,7 +25,7 @@
         ></a-entity>
       </a-entity>
 
-      <!-- AR marker -->
+      <!-- Marker -->
       <a-marker preset="hiro">
         <!-- Ground -->
         <a-box
@@ -37,7 +37,7 @@
           static-body
         ></a-box>
 
-        <!-- Launcher button -->
+        <!-- Launcher -->
         <a-box
           id="launcher"
           class="clickable"
@@ -56,18 +56,20 @@
 
       function launchProjectile() {
         const projectile = document.createElement('a-sphere');
+        const randomX = (Math.random() * 0.2) - 0.1; // tiny random offset
+        const startPosition = `0 1 0`;
+
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'blue');
-        projectile.setAttribute('position', '0 1 0');
+        projectile.setAttribute('position', startPosition);
         projectile.setAttribute('dynamic-body', {
           mass: 1,
           shape: 'sphere',
           restitution: 0.7
         });
 
-        // Add explosion on collide
-        projectile.addEventListener('collide', (e) => {
-          console.log('💥 Hit!');
+        // Handle collision for each ball
+        projectile.addEventListener('collide', () => {
           const explosion = document.createElement('a-sphere');
           explosion.setAttribute('radius', '0.1');
           explosion.setAttribute('color', 'orange');
@@ -84,11 +86,12 @@
         marker.appendChild(projectile);
 
         projectile.addEventListener('body-loaded', () => {
-          projectile.body.velocity.set(1.5, 3, -2);
+          // Fire with slight variation for realism
+          projectile.body.velocity.set(1.5 + randomX, 3, -2 + randomX);
         });
       }
 
-      // Support click and touch events
+      // Tap support
       launcher.addEventListener('click', launchProjectile);
       launcher.addEventListener('touchstart', launchProjectile);
     </script>
