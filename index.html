@@ -1,107 +1,74 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>AR Projectile Motion with Score</title>
+    <title>AR.js Projectile with Score</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
     <style>
       #score {
         position: absolute;
         top: 10px;
         left: 10px;
-        font-size: 24px;
+        font-size: 20px;
+        background: rgba(0, 0, 0, 0.6);
         color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        z-index: 1;
-        border-radius: 10px;
+        padding: 8px;
+        border-radius: 8px;
+        z-index: 999;
       }
     </style>
   </head>
   <body>
     <div id="score">Score: 0</div>
 
-    <a-scene
-      vr-mode-ui="enabled: false"
-      embedded
-      xr-mode="immersive-ar"
-      webxr="optionalFeatures: hit-test; requiredFeatures: local-floor"
-      ar-hit-test
-      physics="gravity: -9.8"
-    >
-      <a-entity camera look-controls></a-entity>
+    <a-scene embedded arjs="sourceType: webcam;" physics="gravity: -9.8" vr-mode-ui="enabled: false">
+      <a-marker preset="hiro">
+        <a-box id="target" class="target" position="0 0.5 0" color="red" static-body></a-box>
+      </a-marker>
 
-      <!-- Ground -->
-      <a-plane rotation="-90 0 0" width="100" height="100" color="transparent" static-body></a-plane>
-
-      <!-- Target -->
-      <a-box
-        id="target"
-        class="target"
-        position="0 0.5 -3"
-        width="0.5"
-        height="0.5"
-        depth="0.5"
-        color="red"
-        static-body
-      ></a-box>
-
-      <!-- Explosion template (hidden by default) -->
-      <a-entity id="explosion" geometry="primitive: sphere; radius: 0.2"
-                material="color: orange; opacity: 0.8"
-                visible="false"
-                animation__scale="property: scale; to: 2 2 2; dur: 300; easing: easeOutCubic"
-                animation__fade="property: material.opacity; to: 0; dur: 300; delay: 100">
-      </a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
 
     <script>
       let score = 0;
 
-      AFRAME.registerComponent("tap-to-shoot", {
+      AFRAME.registerComponent("tap-to-fire", {
         init: function () {
-          const sceneEl = this.el.sceneEl;
-          const target = document.querySelector("#target");
+          const scene = this.el.sceneEl;
           const scoreDisplay = document.getElementById("score");
 
-          sceneEl.addEventListener("click", () => {
-            const camera = document.querySelector("[camera]");
+          scene.addEventListener("click", () => {
+            const cam = document.querySelector("[camera]");
             const camPos = new THREE.Vector3();
             const camDir = new THREE.Vector3();
-            camera.object3D.getWorldPosition(camPos);
-            camera.object3D.getWorldDirection(camDir);
+            cam.object3D.getWorldPosition(camPos);
+            cam.object3D.getWorldDirection(camDir);
 
             const ball = document.createElement("a-sphere");
-            ball.setAttribute("radius", "0.05");
-            ball.setAttribute("color", "#FFC107");
+            ball.setAttribute("radius", 0.05);
+            ball.setAttribute("color", "#00BCD4");
             ball.setAttribute("position", `${camPos.x} ${camPos.y} ${camPos.z}`);
             ball.setAttribute("dynamic-body", "mass: 0.2; shape: sphere");
             ball.classList.add("projectile");
 
-            // Add collision listener
             ball.addEventListener("collide", (e) => {
-              const collidedEl = e.detail.body.el;
-              if (collidedEl && collidedEl.classList.contains("target")) {
-                // Explosion
-                const explosion = document.querySelector("#explosion").cloneNode(true);
-                explosion.setAttribute("visible", "true");
-                explosion.setAttribute("position", collidedEl.getAttribute("position"));
-                sceneEl.appendChild(explosion);
+              if (e.detail.body.el && e.detail.body.el.classList.contains("target")) {
+                score++;
+                scoreDisplay.textContent = "Score: " + score;
 
-                // Score update
-                score += 1;
-                scoreDisplay.textContent = `Score: ${score}`;
-
-                // Cleanup
-                setTimeout(() => {
-                  sceneEl.removeChild(explosion);
-                }, 600);
+                // Mini explosion
+                const explosion = document.createElement("a-sphere");
+                explosion.setAttribute("radius", 0.1);
+                explosion.setAttribute("color", "orange");
+                explosion.setAttribute("opacity", 0.8);
+                explosion.setAttribute("position", e.detail.body.el.getAttribute("position"));
+                scene.appendChild(explosion);
+                setTimeout(() => scene.removeChild(explosion), 500);
               }
             });
 
-            sceneEl.appendChild(ball);
+            scene.appendChild(ball);
 
             setTimeout(() => {
               const impulse = new CANNON.Vec3(camDir.x * 3, camDir.y * 3 + 1, camDir.z * 3);
@@ -112,7 +79,7 @@
         },
       });
 
-      document.querySelector("a-scene").setAttribute("tap-to-shoot", "");
+      document.querySelector("a-scene").setAttribute("tap-to-fire", "");
     </script>
   </body>
 </html>
