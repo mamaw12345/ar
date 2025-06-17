@@ -1,117 +1,137 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR FPS Shooter</title>
+    <title>Markerless AR FPS Shooter</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://unpkg.com/aframe-particle-system-component@1.0.9/dist/aframe-particle-system-component.min.js"></script>
   </head>
+
   <body style="margin: 0; overflow: hidden;">
     <a-scene
-      physics="gravity: -9.8"
+      webxr="optionalFeatures: hit-test; requiredFeatures: local-floor"
+      xr-mode="immersive-ar"
+      renderer="antialias: true; alpha: true"
+      vr-mode-ui="enabled: false"
       embedded
-      arjs
-      cursor="rayOrigin: mouse"
-      raycaster="objects: .clickable"
+      physics="gravity: -9.8"
     >
-      <!-- Camera (First Person) -->
-      <a-entity id="camera" camera position="0 0 0" look-controls></a-entity>
+      <!-- Camera -->
+      <a-entity id="camera" camera position="0 1.6 0" look-controls></a-entity>
 
-      <!-- Marker -->
-      <a-marker preset="hiro" id="marker">
-        <!-- Ground -->
-        <a-box
-          position="0 0 0"
-          width="4"
-          height="0.1"
-          depth="4"
-          color="gray"
-          static-body
-        ></a-box>
+      <!-- Score HUD -->
+      <a-entity
+        id="hud"
+        position="0 1.8 -1"
+        text="value: Score: 0; color: yellow; width: 2"
+        look-at="[camera]"
+      ></a-entity>
 
-        <!-- Target -->
-        <a-box
-          id="target"
-          position="0 0.6 -2"
-          width="0.5"
-          height="0.5"
-          depth="0.5"
-          color="red"
-          static-body
-        ></a-box>
+      <!-- Ground -->
+      <a-plane
+        position="0 0 0"
+        rotation="-90 0 0"
+        width="100"
+        height="100"
+        color="#444"
+        static-body
+      ></a-plane>
 
-        <!-- Explosion Sound -->
-        <a-entity
-          id="explosion-sound"
-          sound="src: https://cdn.glitch.global/8c4694c2-7869-45f1-9cb8-8f79c146ecb4/explosion.mp3?v=1718602139873; autoplay: false"
-        ></a-entity>
-      </a-marker>
+      <!-- Explosion Sound -->
+      <a-entity
+        id="explosion-sound"
+        sound="src: https://cdn.glitch.global/8c4694c2-7869-45f1-9cb8-8f79c146ecb4/explosion.mp3?v=1718602139873; autoplay: false"
+      ></a-entity>
     </a-scene>
 
     <script>
-      const marker = document.getElementById('marker');
-      const camera = document.getElementById('camera');
-      const target = document.getElementById('target');
-      const explosionSound = document.getElementById('explosion-sound');
+      let score = 0;
+      const scene = document.querySelector("a-scene");
+      const camera = document.getElementById("camera");
+      const hud = document.getElementById("hud");
+      const explosionSound = document.getElementById("explosion-sound");
 
-      document.body.addEventListener('click', () => {
-        if (!marker.object3D.visible) return;
+      // Spawn multiple moving targets
+      function spawnTarget(x, z) {
+        const target = document.createElement("a-box");
+        target.setAttribute("width", "0.4");
+        target.setAttribute("height", "0.4");
+        target.setAttribute("depth", "0.4");
+        target.setAttribute("color", "red");
+        target.setAttribute("position", `${x} 0.6 ${z}`);
+        target.setAttribute("class", "target");
+        target.setAttribute("static-body", "");
+        scene.appendChild(target);
 
-        const projectile = document.createElement('a-sphere');
-        projectile.setAttribute('radius', '0.05');
-        projectile.setAttribute('color', 'yellow');
-        projectile.setAttribute('dynamic-body', 'mass: 0.2; shape: sphere; restitution: 0.5');
+        let dir = 1;
+        setInterval(() => {
+          const pos = target.object3D.position;
+          pos.x += dir * 0.02;
+          if (pos.x > x + 0.5 || pos.x < x - 0.5) dir *= -1;
+        }, 50);
+      }
 
-        // Position projectile at camera (first person shooter)
+      for (let i = 0; i < 5; i++) {
+        spawnTarget(Math.random() * 2 - 1, -1 - i * 1.5);
+      }
+
+      // Handle shooting
+      document.body.addEventListener("click", () => {
+        const projectile = document.createElement("a-sphere");
+        projectile.setAttribute("radius", "0.05");
+        projectile.setAttribute("color", "yellow");
+        projectile.setAttribute("dynamic-body", "mass: 0.2; shape: sphere");
+
         const camPos = new THREE.Vector3();
         const camDir = new THREE.Vector3();
         camera.object3D.getWorldPosition(camPos);
         camera.object3D.getWorldDirection(camDir);
 
-        // Offset a bit forward from camera
-        const startPos = camPos.clone().add(camDir.clone().multiplyScalar(0.5));
-        projectile.setAttribute('position', `${startPos.x} ${startPos.y} ${startPos.z}`);
-        marker.appendChild(projectile);
+        const start = camPos.clone().add(camDir.clone().multiplyScalar(0.5));
+        projectile.setAttribute("position", `${start.x} ${start.y} ${start.z}`);
+        scene.appendChild(projectile);
 
-        // Wait a bit and then apply velocity
         setTimeout(() => {
           if (projectile.body) {
-            const velocity = camDir.clone().multiplyScalar(4); // speed
+            const velocity = camDir.clone().multiplyScalar(6);
             projectile.body.velocity.set(velocity.x, velocity.y, velocity.z);
           }
         }, 100);
 
-        // Handle collision
-        projectile.addEventListener('collide', (e) => {
-          if (e.detail.body.el === target) {
+        // Handle collision with targets
+        projectile.addEventListener("collide", (e) => {
+          const target = e.detail.body.el;
+          if (target && target.classList.contains("target")) {
             explosionSound.components.sound.playSound();
 
-            const explosion = document.createElement('a-entity');
-            explosion.setAttribute('position', target.getAttribute('position'));
-            explosion.setAttribute('particle-system', {
-              preset: 'dust',
-              color: '#FFA500, #FF0000',
+            const explosion = document.createElement("a-entity");
+            explosion.setAttribute("position", target.getAttribute("position"));
+            explosion.setAttribute("particle-system", {
+              preset: "dust",
+              color: "#FFA500, #FF0000",
               particleCount: 100,
               duration: 0.5,
-              size: 0.2
+              size: 0.2,
             });
-            marker.appendChild(explosion);
+            scene.appendChild(explosion);
 
-            // Remove target box
-            if (marker.contains(target)) marker.removeChild(target);
+            // Remove hit target and projectile
+            if (scene.contains(target)) scene.removeChild(target);
+            if (scene.contains(projectile)) scene.removeChild(projectile);
 
-            // Clean up
+            score++;
+            hud.setAttribute("text", `value: Score: ${score}; color: yellow`);
+
             setTimeout(() => {
-              if (marker.contains(explosion)) marker.removeChild(explosion);
+              if (scene.contains(explosion)) scene.removeChild(explosion);
             }, 700);
+          } else {
+            if (scene.contains(projectile)) scene.removeChild(projectile);
           }
-
-          // Always remove projectile
-          if (marker.contains(projectile)) marker.removeChild(projectile);
         });
       });
     </script>
