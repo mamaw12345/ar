@@ -1,85 +1,16 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR.js Projectile with Score</title>
+    <title>AR Camera Test</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
-    <style>
-      #score {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-size: 20px;
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        padding: 8px;
-        border-radius: 8px;
-        z-index: 999;
-      }
-    </style>
   </head>
-  <body>
-    <div id="score">Score: 0</div>
-
-    <a-scene embedded arjs="sourceType: webcam;" physics="gravity: -9.8" vr-mode-ui="enabled: false">
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene embedded arjs="sourceType: webcam;" vr-mode-ui="enabled: false">
       <a-marker preset="hiro">
-        <a-box id="target" class="target" position="0 0.5 0" color="red" static-body></a-box>
+        <a-box position="0 0.5 0" color="blue"></a-box>
       </a-marker>
-
       <a-entity camera></a-entity>
     </a-scene>
-
-    <script>
-      let score = 0;
-
-      AFRAME.registerComponent("tap-to-fire", {
-        init: function () {
-          const scene = this.el.sceneEl;
-          const scoreDisplay = document.getElementById("score");
-
-          scene.addEventListener("click", () => {
-            const cam = document.querySelector("[camera]");
-            const camPos = new THREE.Vector3();
-            const camDir = new THREE.Vector3();
-            cam.object3D.getWorldPosition(camPos);
-            cam.object3D.getWorldDirection(camDir);
-
-            const ball = document.createElement("a-sphere");
-            ball.setAttribute("radius", 0.05);
-            ball.setAttribute("color", "#00BCD4");
-            ball.setAttribute("position", `${camPos.x} ${camPos.y} ${camPos.z}`);
-            ball.setAttribute("dynamic-body", "mass: 0.2; shape: sphere");
-            ball.classList.add("projectile");
-
-            ball.addEventListener("collide", (e) => {
-              if (e.detail.body.el && e.detail.body.el.classList.contains("target")) {
-                score++;
-                scoreDisplay.textContent = "Score: " + score;
-
-                // Mini explosion
-                const explosion = document.createElement("a-sphere");
-                explosion.setAttribute("radius", 0.1);
-                explosion.setAttribute("color", "orange");
-                explosion.setAttribute("opacity", 0.8);
-                explosion.setAttribute("position", e.detail.body.el.getAttribute("position"));
-                scene.appendChild(explosion);
-                setTimeout(() => scene.removeChild(explosion), 500);
-              }
-            });
-
-            scene.appendChild(ball);
-
-            setTimeout(() => {
-              const impulse = new CANNON.Vec3(camDir.x * 3, camDir.y * 3 + 1, camDir.z * 3);
-              const worldPos = new CANNON.Vec3(camPos.x, camPos.y, camPos.z);
-              ball.body.applyImpulse(impulse, worldPos);
-            }, 100);
-          });
-        },
-      });
-
-      document.querySelector("a-scene").setAttribute("tap-to-fire", "");
-    </script>
   </body>
 </html>
