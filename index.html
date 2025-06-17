@@ -17,6 +17,14 @@
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
     >
+      <!-- Camera cursor for mobile -->
+      <a-entity camera>
+        <a-entity
+          cursor="fuse: false; rayOrigin: mouse"
+          raycaster="objects: .clickable"
+        ></a-entity>
+      </a-entity>
+
       <!-- AR marker -->
       <a-marker preset="hiro">
         <!-- Ground -->
@@ -40,57 +48,49 @@
           color="red"
         ></a-box>
       </a-marker>
-
-      <a-entity camera></a-entity>
     </a-scene>
 
     <script>
       const launcher = document.getElementById('launcher');
       const marker = document.querySelector('a-marker');
 
-      launcher.addEventListener('click', () => {
-        // Create projectile
+      function launchProjectile() {
         const projectile = document.createElement('a-sphere');
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'blue');
         projectile.setAttribute('position', '0 1 0');
-
-        // Set physics (with bounce)
         projectile.setAttribute('dynamic-body', {
           mass: 1,
           shape: 'sphere',
-          restitution: 0.7 // BOUNCE!
+          restitution: 0.7
         });
 
-        // On collision: explode and remove
+        // Add explosion on collide
         projectile.addEventListener('collide', (e) => {
-          console.log('💥 Projectile collided!');
-
-          // Explosion effect
+          console.log('💥 Hit!');
           const explosion = document.createElement('a-sphere');
           explosion.setAttribute('radius', '0.1');
           explosion.setAttribute('color', 'orange');
           explosion.setAttribute('position', projectile.getAttribute('position'));
           marker.appendChild(explosion);
 
-          // Clean up
           setTimeout(() => {
-            marker.removeChild(explosion);
+            if (marker.contains(explosion)) marker.removeChild(explosion);
           }, 300);
 
-          // Remove projectile
-          if (marker.contains(projectile)) {
-            marker.removeChild(projectile);
-          }
+          if (marker.contains(projectile)) marker.removeChild(projectile);
         });
 
-        // Add projectile and launch it
         marker.appendChild(projectile);
+
         projectile.addEventListener('body-loaded', () => {
-          const body = projectile.body;
-          body.velocity.set(1.5, 3, -2); // Initial velocity: x, y, z
+          projectile.body.velocity.set(1.5, 3, -2);
         });
-      });
+      }
+
+      // Support click and touch events
+      launcher.addEventListener('click', launchProjectile);
+      launcher.addEventListener('touchstart', launchProjectile);
     </script>
   </body>
 </html>
