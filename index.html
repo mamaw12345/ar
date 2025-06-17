@@ -1,96 +1,52 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>AR Projectile Motion - Tap to Launch</title>
-  <meta charset="utf-8" />
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar-nft.min.js"></script>
-  <style>
-    body, html { margin: 0; overflow: hidden; width: 100%; height: 100%; }
-    a-scene { width: 100%; height: 100%; position: fixed; }
-    #startMessage {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-family: sans-serif;
-      z-index: 10;
-    }
-  </style>
-</head>
-<body>
-  <div id="startMessage">Click or tap anywhere to launch</div>
+  <head>
+    <title>3D Projectile Motion AR</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene embedded arjs>
+      
+      <!-- Marker -->
+      <a-marker preset="hiro">
+        <!-- Launcher object -->
+        <a-box position="0 0.5 0" depth="0.2" height="0.2" width="0.2" color="red"></a-box>
 
-  <a-scene
-    vr-mode-ui="enabled: false"
-    embedded
-    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-  >
-    <a-entity camera></a-entity>
+        <!-- Projectile -->
+        <a-sphere id="projectile" position="0 0.5 0" radius="0.05" color="blue"></a-sphere>
+      </a-marker>
 
-    <!-- Ground for visual reference -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color="#aaa"></a-plane>
+      <a-entity camera></a-entity>
+    </a-scene>
 
-    <!-- Projectile -->
-    <a-entity id="projectile" position="0 0.1 0" projectile-motion>
-      <a-sphere color="orange" radius="0.1"></a-sphere>
-    </a-entity>
-  </a-scene>
-
-  <script>
-    AFRAME.registerComponent('projectile-motion', {
-      schema: {
-        velocity: { type: 'number', default: 5 },
-        angle: { type: 'number', default: 60 },
-        gravity: { type: 'number', default: 9.8 }
-      },
-      init: function () {
-        this.time = 0;
-        this.running = false;
-      },
-      tick: function (time, deltaTime) {
-        if (!this.running) return;
-
-        this.time += deltaTime / 1000;
-        const v = this.data.velocity;
-        const angle = this.data.angle * (Math.PI / 180);
-        const g = this.data.gravity;
-
-        const x = v * Math.cos(angle) * this.time;
-        const y = v * Math.sin(angle) * this.time - 0.5 * g * this.time * this.time;
-
-        if (y >= 0) {
-          this.el.setAttribute('position', `0 ${y.toFixed(2)} ${x.toFixed(2)}`);
-        } else {
-          this.running = false;
-        }
-      },
-      startMotion: function () {
-        this.time = 0;
-        this.running = true;
-        this.el.setAttribute('position', '0 0.1 0'); // reset position
-      }
-    });
-
-    window.addEventListener('load', () => {
+    <script>
       const projectile = document.querySelector('#projectile');
-      const launch = () => {
-        if (projectile && projectile.components['projectile-motion']) {
-          projectile.components['projectile-motion'].startMotion();
-        }
-        // Hide message on first launch
-        const msg = document.getElementById('startMessage');
-        if (msg) msg.style.display = 'none';
-      };
+      let t = 0;
+      let interval;
 
-      // Handle both mouse click and touch
-      document.body.addEventListener('click', launch);
-      document.body.addEventListener('touchstart', launch);
-    });
-  </script>
-</body>
+      function launchProjectile() {
+        t = 0;
+        if (interval) clearInterval(interval);
+
+        interval = setInterval(() => {
+          t += 0.05;
+
+          // Parametric 3D arc path: x = t, y = sin(t), z = -t (no gravity, fake arc)
+          const x = t;
+          const y = 0.5 + 0.5 * Math.sin(t * 2); // sine wave arc
+          const z = -t;
+
+          if (t > 2) {
+            clearInterval(interval);
+          } else {
+            projectile.setAttribute('position', { x, y, z });
+          }
+        }, 50);
+      }
+
+      // Tap anywhere to launch
+      document.body.addEventListener('click', launchProjectile);
+    </script>
+  </body>
 </html>
