@@ -1,30 +1,24 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Projectile Motion with Explosion FX</title>
+    <title>Projectile AR Explode Fix</title>
     <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://unpkg.com/aframe-particle-system-component@1.0.9/dist/aframe-particle-system-component.min.js"></script>
   </head>
 
   <body style="margin: 0; overflow: hidden;">
     <a-scene
+      physics="gravity: -9.8"
       embedded
       arjs
-      physics="gravity: -9.8"
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
     >
-      <!-- Camera -->
-      <a-entity camera>
-        <a-entity
-          cursor="fuse: false; rayOrigin: mouse"
-          raycaster="objects: .clickable"
-        ></a-entity>
-      </a-entity>
+      <a-entity camera></a-entity>
 
       <!-- Marker -->
       <a-marker preset="hiro" id="marker">
@@ -34,18 +28,7 @@
           width="4"
           height="0.1"
           depth="4"
-          color="#ccc"
-          static-body
-        ></a-box>
-
-        <!-- Target -->
-        <a-box
-          id="target"
-          position="0 0.6 -1"
-          width="0.3"
-          height="0.3"
-          depth="0.3"
-          color="red"
+          color="gray"
           static-body
         ></a-box>
 
@@ -60,6 +43,17 @@
           color="blue"
         ></a-box>
 
+        <!-- Target -->
+        <a-box
+          id="target"
+          position="0 0.6 -1"
+          width="0.3"
+          height="0.3"
+          depth="0.3"
+          color="red"
+          static-body
+        ></a-box>
+
         <!-- Explosion Sound -->
         <a-entity
           id="explosion-sound"
@@ -69,12 +63,12 @@
     </a-scene>
 
     <script>
-      const launcher = document.getElementById('launcher');
       const marker = document.getElementById('marker');
+      const launcher = document.getElementById('launcher');
       const target = document.getElementById('target');
       const explosionSound = document.getElementById('explosion-sound');
 
-      function launchProjectile() {
+      launcher.addEventListener('click', () => {
         const projectile = document.createElement('a-sphere');
         projectile.setAttribute('radius', '0.05');
         projectile.setAttribute('color', 'yellow');
@@ -84,56 +78,44 @@
           restitution: 0.7
         });
 
-        // Get launcher position and offset slightly forward
-        const launcherPos = launcher.object3D.getWorldPosition(new THREE.Vector3());
-        const offset = new THREE.Vector3(0, 0.2, -0.2); // slightly above and forward
-        const startPosition = launcherPos.clone().add(offset);
-
-        projectile.setAttribute('position', `${startPosition.x} ${startPosition.y} ${startPosition.z}`);
+        // Spawn just above the launcher
+        projectile.setAttribute('position', '0 1.2 0'); // visible above blue box
         marker.appendChild(projectile);
 
         projectile.addEventListener('body-loaded', () => {
-          // Give initial velocity forward (toward negative Z)
-          projectile.body.velocity.set(0, 2.5, -3);
+          projectile.body.velocity.set(0, 2, -2); // forward and up
         });
 
-        // Handle collision
         projectile.addEventListener('collide', (e) => {
-          const hitEl = e.detail.body.el;
-          if (hitEl === target) {
-            console.log('💥 Target hit!');
-
-            // Play explosion sound
+          if (e.detail.body.el === target) {
+            // Explosion sound
             explosionSound.components.sound.playSound();
 
-            // Particle effect
+            // Particles
             const explosion = document.createElement('a-entity');
             explosion.setAttribute('position', target.getAttribute('position'));
             explosion.setAttribute('particle-system', {
               preset: 'dust',
-              particleCount: 100,
-              size: 0.2,
               color: '#FFA500, #FF0000',
-              duration: 0.5
+              particleCount: 100,
+              duration: 0.3,
+              size: 0.2
             });
             marker.appendChild(explosion);
 
             // Remove target
             if (marker.contains(target)) marker.removeChild(target);
 
-            // Clean up particles
+            // Cleanup
             setTimeout(() => {
               if (marker.contains(explosion)) marker.removeChild(explosion);
-            }, 700);
+            }, 500);
           }
 
-          // Remove projectile
+          // Always remove projectile
           if (marker.contains(projectile)) marker.removeChild(projectile);
         });
-      }
-
-      launcher.addEventListener('click', launchProjectile);
-      launcher.addEventListener('touchstart', launchProjectile);
+      });
     </script>
   </body>
 </html>
