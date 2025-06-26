@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>AR Projectile Motion (Fixed)</title>
+    <meta charset="UTF-8" />
+    <title>AR Projectile Motion</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <style>
@@ -20,7 +20,6 @@
         init: function () {
           const sceneEl = this.el.sceneEl;
 
-          // Use touchstart for mobile devices
           window.addEventListener("touchstart", () => {
             const cameraEl = sceneEl.camera.el;
             const position = new THREE.Vector3();
@@ -58,7 +57,7 @@
               } else {
                 projectile.setAttribute("position", `${x} ${y} ${z}`);
               }
-            }, 16); // 60 FPS
+            }, 16);
           });
         },
       });
@@ -66,15 +65,20 @@
   </head>
   <body>
     <a-scene
-      renderer="colorManagement: true; physicallyCorrectLights: true;"
+      renderer="colorManagement: true; physicallyCorrectLights: true"
       embedded
-      xr="mode: ar;"
+      xr="mode: ar"
     >
-      <!-- Camera with launcher -->
-      <a-entity camera look-controls ar-projectile-launcher position="0 1.6 0"></a-entity>
+      <a-entity camera look-controls position="0 1.6 0" ar-projectile-launcher></a-entity>
 
-      <!-- Lighting -->
       <a-entity light="type: ambient; intensity: 1.0"></a-entity>
+
+      <!-- Optional Hint Text -->
+      <a-entity
+        text="value: Tap screen to launch projectile; color: white; align: center;"
+        position="0 1.5 -2"
+        visible="true"
+      ></a-entity>
     </a-scene>
   </body>
 </html>
