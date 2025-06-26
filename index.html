@@ -2,77 +2,79 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>3D Projectile Motion</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR Projectile Motion (Mobile)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <style>
-      body {
+      html, body {
         margin: 0;
+        padding: 0;
         overflow: hidden;
+        height: 100%;
+        background: #000;
+        touch-action: manipulation;
       }
     </style>
     <script>
-      AFRAME.registerComponent("projectile-launcher", {
+      AFRAME.registerComponent("ar-projectile-launcher", {
         init: function () {
           const sceneEl = this.el.sceneEl;
 
           window.addEventListener("click", () => {
-            const projectile = document.createElement("a-sphere");
-            projectile.setAttribute("radius", "0.1");
-            projectile.setAttribute("color", "#ff4136");
-            projectile.setAttribute("position", "0 1.5 0");
+            const cameraEl = sceneEl.querySelector("[camera]");
+            const cameraObj = cameraEl.getObject3D("camera");
+            const position = new THREE.Vector3();
+            const direction = new THREE.Vector3();
 
+            cameraEl.object3D.getWorldPosition(position);
+            cameraObj.getWorldDirection(direction);
+            direction.normalize();
+
+            // Create projectile
+            const projectile = document.createElement("a-sphere");
+            projectile.setAttribute("radius", "0.05");
+            projectile.setAttribute("color", "#ff0000");
+            projectile.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
             sceneEl.appendChild(projectile);
 
-            // Physics setup
-            const velocity = 5; // meters/second
-            const angleXY = 45; // horizontal angle in degrees
-            const angleZ = 30; // vertical angle in degrees
+            // Motion setup
+            const speed = 3;
+            const verticalVelocity = 1.5;
+            const gravity = -9.81;
+            const startTime = performance.now();
 
-            const radXY = angleXY * (Math.PI / 180);
-            const radZ = angleZ * (Math.PI / 180);
+            const velocity = direction.clone().multiplyScalar(speed);
+            const origin = position.clone();
 
-            const vx = velocity * Math.cos(radZ) * Math.cos(radXY);
-            const vy = velocity * Math.sin(radZ);
-            const vz = -velocity * Math.cos(radZ) * Math.sin(radXY);
+            const interval = setInterval(() => {
+              const t = (performance.now() - startTime) / 1000;
 
-            let t = 0;
-            const gravity = -9.8; // m/s²
-            const interval = 20;
-
-            const intervalId = setInterval(() => {
-              t += interval / 1000;
-
-              const x = vx * t;
-              const y = 1.5 + vy * t + 0.5 * gravity * t * t;
-              const z = vz * t;
+              const x = origin.x + velocity.x * t;
+              const y = origin.y + verticalVelocity * t + 0.5 * gravity * t * t;
+              const z = origin.z + velocity.z * t;
 
               if (y <= 0) {
-                clearInterval(intervalId);
                 projectile.remove();
+                clearInterval(interval);
               } else {
                 projectile.setAttribute("position", `${x} ${y} ${z}`);
               }
-            }, interval);
+            }, 16); // ~60fps
           });
         },
       });
     </script>
   </head>
   <body>
-    <a-scene>
-      <!-- Camera -->
-      <a-entity camera position="0 1.6 5" look-controls></a-entity>
+    <a-scene
+      renderer="colorManagement: true; physicallyCorrectLights: true;"
+      xr="mode: ar; overlayUI: true;"
+      embedded
+      ar-hit-test
+    >
+      <a-entity camera position="0 1.6 0" ar-projectile-launcher look-controls></a-entity>
 
-      <!-- Ground -->
-      <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="30" color="#7BC8A4"></a-plane>
-
-      <!-- Launcher -->
-      <a-entity projectile-launcher></a-entity>
-
-      <!-- Lighting -->
-      <a-entity light="type: ambient; intensity: 0.5"></a-entity>
-      <a-entity light="type: directional; intensity: 0.8" position="0 10 0"></a-entity>
+      <a-entity light="type: ambient; intensity: 1.0"></a-entity>
     </a-scene>
   </body>
 </html>
