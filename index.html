@@ -1,139 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Markerless AR FPS Shooter</title>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <title>3D Projectile Motion</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.0.9/dist/aframe-particle-system-component.min.js"></script>
-  </head>
-
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      webxr="optionalFeatures: hit-test; requiredFeatures: local-floor"
-      xr-mode="immersive-ar"
-      renderer="antialias: true; alpha: true"
-      vr-mode-ui="enabled: false"
-      embedded
-      physics="gravity: -9.8"
-    >
-      <!-- Camera -->
-      <a-entity id="camera" camera position="0 1.6 0" look-controls></a-entity>
-
-      <!-- Score HUD -->
-      <a-entity
-        id="hud"
-        position="0 1.8 -1"
-        text="value: Score: 0; color: yellow; width: 2"
-        look-at="[camera]"
-      ></a-entity>
-
-      <!-- Ground -->
-      <a-plane
-        position="0 0 0"
-        rotation="-90 0 0"
-        width="100"
-        height="100"
-        color="#444"
-        static-body
-      ></a-plane>
-
-      <!-- Explosion Sound -->
-      <a-entity
-        id="explosion-sound"
-        sound="src: https://cdn.glitch.global/8c4694c2-7869-45f1-9cb8-8f79c146ecb4/explosion.mp3?v=1718602139873; autoplay: false"
-      ></a-entity>
-    </a-scene>
-
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
     <script>
-      let score = 0;
-      const scene = document.querySelector("a-scene");
-      const camera = document.getElementById("camera");
-      const hud = document.getElementById("hud");
-      const explosionSound = document.getElementById("explosion-sound");
+      AFRAME.registerComponent("projectile-launcher", {
+        init: function () {
+          const sceneEl = this.el.sceneEl;
 
-      // Spawn multiple moving targets
-      function spawnTarget(x, z) {
-        const target = document.createElement("a-box");
-        target.setAttribute("width", "0.4");
-        target.setAttribute("height", "0.4");
-        target.setAttribute("depth", "0.4");
-        target.setAttribute("color", "red");
-        target.setAttribute("position", `${x} 0.6 ${z}`);
-        target.setAttribute("class", "target");
-        target.setAttribute("static-body", "");
-        scene.appendChild(target);
+          window.addEventListener("click", () => {
+            const projectile = document.createElement("a-sphere");
+            projectile.setAttribute("radius", "0.1");
+            projectile.setAttribute("color", "#ff4136");
+            projectile.setAttribute("position", "0 1.5 0");
 
-        let dir = 1;
-        setInterval(() => {
-          const pos = target.object3D.position;
-          pos.x += dir * 0.02;
-          if (pos.x > x + 0.5 || pos.x < x - 0.5) dir *= -1;
-        }, 50);
-      }
+            sceneEl.appendChild(projectile);
 
-      for (let i = 0; i < 5; i++) {
-        spawnTarget(Math.random() * 2 - 1, -1 - i * 1.5);
-      }
+            // Physics setup
+            const velocity = 5; // meters/second
+            const angleXY = 45; // horizontal angle in degrees
+            const angleZ = 30; // vertical angle in degrees
 
-      // Handle shooting
-      document.body.addEventListener("click", () => {
-        const projectile = document.createElement("a-sphere");
-        projectile.setAttribute("radius", "0.05");
-        projectile.setAttribute("color", "yellow");
-        projectile.setAttribute("dynamic-body", "mass: 0.2; shape: sphere");
+            const radXY = angleXY * (Math.PI / 180);
+            const radZ = angleZ * (Math.PI / 180);
 
-        const camPos = new THREE.Vector3();
-        const camDir = new THREE.Vector3();
-        camera.object3D.getWorldPosition(camPos);
-        camera.object3D.getWorldDirection(camDir);
+            const vx = velocity * Math.cos(radZ) * Math.cos(radXY);
+            const vy = velocity * Math.sin(radZ);
+            const vz = -velocity * Math.cos(radZ) * Math.sin(radXY);
 
-        const start = camPos.clone().add(camDir.clone().multiplyScalar(0.5));
-        projectile.setAttribute("position", `${start.x} ${start.y} ${start.z}`);
-        scene.appendChild(projectile);
+            let t = 0;
+            const gravity = -9.8; // m/s²
+            const interval = 20;
 
-        setTimeout(() => {
-          if (projectile.body) {
-            const velocity = camDir.clone().multiplyScalar(6);
-            projectile.body.velocity.set(velocity.x, velocity.y, velocity.z);
-          }
-        }, 100);
+            const intervalId = setInterval(() => {
+              t += interval / 1000;
 
-        // Handle collision with targets
-        projectile.addEventListener("collide", (e) => {
-          const target = e.detail.body.el;
-          if (target && target.classList.contains("target")) {
-            explosionSound.components.sound.playSound();
+              const x = vx * t;
+              const y = 1.5 + vy * t + 0.5 * gravity * t * t;
+              const z = vz * t;
 
-            const explosion = document.createElement("a-entity");
-            explosion.setAttribute("position", target.getAttribute("position"));
-            explosion.setAttribute("particle-system", {
-              preset: "dust",
-              color: "#FFA500, #FF0000",
-              particleCount: 100,
-              duration: 0.5,
-              size: 0.2,
-            });
-            scene.appendChild(explosion);
-
-            // Remove hit target and projectile
-            if (scene.contains(target)) scene.removeChild(target);
-            if (scene.contains(projectile)) scene.removeChild(projectile);
-
-            score++;
-            hud.setAttribute("text", `value: Score: ${score}; color: yellow`);
-
-            setTimeout(() => {
-              if (scene.contains(explosion)) scene.removeChild(explosion);
-            }, 700);
-          } else {
-            if (scene.contains(projectile)) scene.removeChild(projectile);
-          }
-        });
+              if (y <= 0) {
+                clearInterval(intervalId);
+                projectile.remove();
+              } else {
+                projectile.setAttribute("position", `${x} ${y} ${z}`);
+              }
+            }, interval);
+          });
+        },
       });
     </script>
+  </head>
+  <body>
+    <a-scene>
+      <!-- Camera -->
+      <a-entity camera position="0 1.6 5" look-controls></a-entity>
+
+      <!-- Ground -->
+      <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="30" color="#7BC8A4"></a-plane>
+
+      <!-- Launcher -->
+      <a-entity projectile-launcher></a-entity>
+
+      <!-- Lighting -->
+      <a-entity light="type: ambient; intensity: 0.5"></a-entity>
+      <a-entity light="type: directional; intensity: 0.8" position="0 10 0"></a-entity>
+    </a-scene>
   </body>
 </html>
