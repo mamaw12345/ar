@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <title>AR Projectile Motion (Mobile)</title>
+    <meta charset="utf-8" />
+    <title>AR Projectile Motion (Fixed)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <style>
@@ -20,14 +20,14 @@
         init: function () {
           const sceneEl = this.el.sceneEl;
 
-          window.addEventListener("click", () => {
-            const cameraEl = sceneEl.querySelector("[camera]");
-            const cameraObj = cameraEl.getObject3D("camera");
+          // Use touchstart for mobile devices
+          window.addEventListener("touchstart", () => {
+            const cameraEl = sceneEl.camera.el;
             const position = new THREE.Vector3();
             const direction = new THREE.Vector3();
 
             cameraEl.object3D.getWorldPosition(position);
-            cameraObj.getWorldDirection(direction);
+            cameraEl.object3D.getWorldDirection(direction);
             direction.normalize();
 
             // Create projectile
@@ -48,7 +48,6 @@
 
             const interval = setInterval(() => {
               const t = (performance.now() - startTime) / 1000;
-
               const x = origin.x + velocity.x * t;
               const y = origin.y + verticalVelocity * t + 0.5 * gravity * t * t;
               const z = origin.z + velocity.z * t;
@@ -59,7 +58,7 @@
               } else {
                 projectile.setAttribute("position", `${x} ${y} ${z}`);
               }
-            }, 16); // ~60fps
+            }, 16); // 60 FPS
           });
         },
       });
@@ -68,12 +67,13 @@
   <body>
     <a-scene
       renderer="colorManagement: true; physicallyCorrectLights: true;"
-      xr="mode: ar; overlayUI: true;"
       embedded
-      ar-hit-test
+      xr="mode: ar;"
     >
-      <a-entity camera position="0 1.6 0" ar-projectile-launcher look-controls></a-entity>
+      <!-- Camera with launcher -->
+      <a-entity camera look-controls ar-projectile-launcher position="0 1.6 0"></a-entity>
 
+      <!-- Lighting -->
       <a-entity light="type: ambient; intensity: 1.0"></a-entity>
     </a-scene>
   </body>
