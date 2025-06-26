@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Projectile with Target & Score</title>
+    <title>AR Projectile with Explosion</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
     <style>
@@ -38,74 +38,112 @@
             if (launched) return;
             launched = true;
 
+            // Initial physics values
             let t = 0;
+            const dt = 0.016;
             const g = 9.8;
             const v0 = 4;
             const angle = Math.PI / 4;
 
+            // Clear old trail
+            const oldTrail = document.getElementById("trail");
+            if (oldTrail) oldTrail.remove();
+
             const trailGroup = document.createElement("a-entity");
+            trailGroup.setAttribute("id", "trail");
             scene.appendChild(trailGroup);
 
-            const interval = setInterval(() => {
-              t += 0.1;
+            function animate() {
+              t += dt;
+
               const x = v0 * Math.cos(angle) * t;
               const y = v0 * Math.sin(angle) * t - 0.5 * g * t * t;
 
               if (y < 0) {
-                clearInterval(interval);
                 launched = false;
                 el.setAttribute("position", "0 0.5 0");
                 return;
               }
 
-              // Update projectile position
-              el.setAttribute("position", `${x} ${y + 0.5} 0`);
+              const newPos = `${x} ${y + 0.5} 0`;
+              el.setAttribute("position", newPos);
 
-              // Add trail dot
+              // Trail dot
               const dot = document.createElement("a-sphere");
-              dot.setAttribute("position", `${x} ${y + 0.5} 0`);
+              dot.setAttribute("position", newPos);
               dot.setAttribute("radius", "0.02");
               dot.setAttribute("color", "#00BFFF");
               trailGroup.appendChild(dot);
 
-              // Get world positions
+              // Collision detection
               const ballWorldPos = new THREE.Vector3();
               el.object3D.getWorldPosition(ballWorldPos);
-
               const targetWorldPos = new THREE.Vector3();
               target.object3D.getWorldPosition(targetWorldPos);
-
               const dist = ballWorldPos.distanceTo(targetWorldPos);
 
               if (dist < 0.3) {
+                // Explosion
+                createExplosion(ballWorldPos);
+
                 score += 1;
                 document.getElementById("score").innerText = score;
-                clearInterval(interval);
                 launched = false;
                 el.setAttribute("position", "0 0.5 0");
+                return;
               }
-            }, 50);
+
+              requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            function createExplosion(position) {
+              const explosion = document.createElement("a-entity");
+
+              for (let i = 0; i < 10; i++) {
+                const particle = document.createElement("a-sphere");
+                particle.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
+                particle.setAttribute("radius", "0.05");
+                particle.setAttribute("color", "#FFD700"); // gold/yellow
+                particle.setAttribute("animation__move", {
+                  property: "position",
+                  to: `${position.x + (Math.random() - 0.5)} ${position.y + Math.random()} ${position.z + (Math.random() - 0.5)}`,
+                  dur: 500,
+                  easing: "easeOutQuad"
+                });
+                particle.setAttribute("animation__fade", {
+                  property: "material.opacity",
+                  to: 0,
+                  dur: 500,
+                  easing: "linear"
+                });
+                explosion.appendChild(particle);
+              }
+
+              scene.appendChild(explosion);
+
+              // Remove particles after effect
+              setTimeout(() => explosion.remove(), 700);
+            }
           });
         }
       });
     </script>
   </head>
+
   <body>
-    <!-- Score display -->
     <div id="scoreboard">🎯 Score: <span id="score">0</span></div>
 
-    <!-- A-Frame Scene -->
     <a-scene
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
       vr-mode-ui="enabled: false"
     >
-      <!-- Marker -->
       <a-marker preset="hiro">
-        <!-- Ground -->
         <a-plane color="gray" rotation="-90 0 0" width="2" height="2"></a-plane>
 
-        <!-- Ball -->
+        <!-- Projectile -->
         <a-sphere
           id="ball"
           radius="0.1"
@@ -125,7 +163,6 @@
         ></a-box>
       </a-marker>
 
-      <!-- Camera & Cursor -->
       <a-entity camera>
         <a-cursor></a-cursor>
       </a-entity>
