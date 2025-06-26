@@ -16,29 +16,24 @@
       }
     </style>
     <script>
-      AFRAME.registerComponent("ar-projectile-launcher", {
+      AFRAME.registerComponent("projectile-launcher", {
         init: function () {
           const sceneEl = this.el.sceneEl;
 
           if (!navigator.xr) {
             alert("⚠️ WebXR is not supported on this browser/device.");
-            console.warn("WebXR not available.");
             return;
           }
 
-          console.log("✅ WebXR supported. Ready to launch projectiles.");
-
           window.addEventListener("touchstart", () => {
-            const cameraEl = sceneEl.camera.el;
+            const camEl = sceneEl.querySelector("[camera]");
+            const cam = camEl.object3D;
             const position = new THREE.Vector3();
             const direction = new THREE.Vector3();
 
-            cameraEl.object3D.getWorldPosition(position);
-            cameraEl.object3D.getWorldDirection(direction);
+            cam.getWorldPosition(position);
+            cam.getWorldDirection(direction);
             direction.normalize();
-
-            console.log("📍 Launching from:", position);
-            console.log("➡️ Direction:", direction);
 
             const projectile = document.createElement("a-sphere");
             projectile.setAttribute("radius", "0.05");
@@ -46,71 +41,42 @@
             projectile.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
             sceneEl.appendChild(projectile);
 
-            const speed = 3;
-            const verticalVelocity = 1.5;
-            const gravity = -9.81;
-            const startTime = performance.now();
-
-            const velocity = direction.clone().multiplyScalar(speed);
+            // Motion
+            const velocity = direction.multiplyScalar(2.5); // speed
+            const vertical = 1.5; // initial Y velocity
+            const gravity = -9.8;
             const origin = position.clone();
+            const start = performance.now();
 
-            const interval = setInterval(() => {
-              const t = (performance.now() - startTime) / 1000;
+            const move = setInterval(() => {
+              const t = (performance.now() - start) / 1000;
               const x = origin.x + velocity.x * t;
-              const y = origin.y + verticalVelocity * t + 0.5 * gravity * t * t;
+              const y = origin.y + vertical * t + 0.5 * gravity * t * t;
               const z = origin.z + velocity.z * t;
 
               if (y <= 0) {
-                console.log("💥 Projectile hit the ground.");
                 projectile.remove();
-                clearInterval(interval);
+                clearInterval(move);
               } else {
                 projectile.setAttribute("position", `${x} ${y} ${z}`);
               }
             }, 16);
           });
-        },
+        }
       });
     </script>
   </head>
   <body>
     <a-scene
-      renderer="colorManagement: true; physicallyCorrectLights: true"
       embedded
+      renderer="colorManagement: true; physicallyCorrectLights: true"
       xr="mode: ar"
     >
-      <!-- Camera with projectile launcher -->
-      <a-entity camera look-controls position="0 1.6 0" ar-projectile-launcher></a-entity>
+      <!-- Camera with launcher -->
+      <a-entity camera look-controls position="0 1.6 0" projectile-launcher></a-entity>
 
-      <!-- Light -->
+      <!-- Ambient light -->
       <a-entity light="type: ambient; intensity: 1.0"></a-entity>
-
-      <!-- 🎯 Target Box -->
-      <a-box
-        id="target"
-        position="0 1.5 -3"
-        depth="0.2"
-        height="0.5"
-        width="0.5"
-        color="yellow"
-        opacity="0.7"
-      ></a-box>
-
-      <!-- 🔫 Crosshair Reticle -->
-      <a-entity
-        geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
-        material="color: white; shader: flat"
-        position="0 0 -1"
-        scale="1 1 1"
-        camera
-        visible="true"
-      ></a-entity>
-
-      <!-- 📝 Hint Text -->
-      <a-entity
-        text="value: Tap screen to fire projectile; color: white; align: center;"
-        position="0 2 -3"
-      ></a-entity>
     </a-scene>
   </body>
 </html>
