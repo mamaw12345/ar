@@ -1,9 +1,37 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Cube Example</title>
+    <title>Projectile Motion in AR</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+    <script>
+      AFRAME.registerComponent("projectile-launch", {
+        init: function () {
+          const el = this.el;
+          let launched = false;
+          el.addEventListener("click", () => {
+            if (launched) return; // prevent multiple launches
+            launched = true;
+
+            let t = 0;
+            const g = 9.8; // gravity
+            const v0 = 5; // initial velocity
+            const angle = Math.PI / 4; // 45 degrees
+            const interval = setInterval(() => {
+              t += 0.05;
+              const x = v0 * Math.cos(angle) * t;
+              const y = v0 * Math.sin(angle) * t - 0.5 * g * t * t;
+              if (y < 0) {
+                clearInterval(interval);
+                launched = false;
+                return;
+              }
+              el.setAttribute("position", { x: x, y: y + 0.5, z: 0 });
+            }, 50);
+          });
+        }
+      });
+    </script>
     <style>
       body, html {
         margin: 0;
@@ -11,37 +39,32 @@
         width: 100%;
         height: 100%;
       }
-      #loading {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: black;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10;
-      }
     </style>
   </head>
   <body>
-    <div id="loading">Loading AR...</div>
     <a-scene
       vr-mode-ui="enabled: false"
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
-      loading-screen="enabled: false"
     >
+      <!-- Marker -->
       <a-marker preset="hiro">
-        <a-box position="0 0.5 0" material="color: red;"></a-box>
-      </a-marker>
-      <a-entity camera></a-entity>
-    </a-scene>
+        <!-- Ground/marker visual -->
+        <a-plane color="gray" rotation="-90 0 0" width="2" height="2"></a-plane>
 
-    <script>
-      window.addEventListener('arjs-video-loaded', () => {
-        document.getElementById('loading').style.display = 'none';
-      });
-    </script>
+        <!-- Ball -->
+        <a-sphere
+          id="ball"
+          radius="0.1"
+          color="red"
+          position="0 0.5 0"
+          projectile-launch
+        ></a-sphere>
+      </a-marker>
+
+      <a-entity camera>
+        <a-cursor></a-cursor>
+      </a-entity>
+    </a-scene>
   </body>
 </html>
